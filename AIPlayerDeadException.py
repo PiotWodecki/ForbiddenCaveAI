@@ -1,0 +1,1 @@
+class AIPlayerDeadException(Exception): pass

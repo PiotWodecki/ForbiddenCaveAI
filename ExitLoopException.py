@@ -1,0 +1,1 @@
+class ExitLoopException(Exception): pass
