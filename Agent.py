@@ -1,5 +1,5 @@
 import time
-
+import os
 import pygame
 import random
 import numpy as np
@@ -16,8 +16,8 @@ from Helper import plot
 
 
 MAX_MEMORY = 1_000_000
-BATCH_SIZE = 10000
-LR = 0.02
+BATCH_SIZE = 1024
+LR = 0.01
 
 
 class Agent:
@@ -25,9 +25,9 @@ class Agent:
     def __init__(self):
         self.number_of_games = 0
         self.epsilon = 0  #randomness
-        self.gamma = 0.9 #discount rate (<1)
+        self.gamma = 0.95 #discount rate (<1)
         self.memory = deque(maxlen=MAX_MEMORY) #after max memory - popleft()
-        self.model = Linear_QNET(27, 256, 6)
+        self.model = Linear_QNET(29, 256, 5)
         # self.model = Linear_QNET.load(self)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
@@ -38,17 +38,20 @@ class Agent:
     def get_state(self, game, player):
         '''
                 states: =[
-                Danger:
-                left right up down
-
-                Wall:
-                left right up
+                position:
+                x: y:
 
                 Gems:
                 left right up down
 
                 Is_Gem_Close
                 Yes/No (1 value)
+
+                Danger:
+                left right up down
+
+                Wall:
+                left right up
 
                 Ladders: (check if exists)
                 left right up down exists
@@ -62,6 +65,7 @@ class Agent:
                 check for diaments and doors
                 '''
         # get the position of the player
+        position = game.get_scaled_position_of_the_player(player)
         dangers = game.check_for_danger(player)
         walls = game.check_for_wall(player)
         gems = game.check_for_gems(player)
@@ -69,7 +73,7 @@ class Agent:
         ladders = game.check_for_ladders(player)
         elevators = game.check_for_elevators(player)
         doors = game.check_for_doors(player)
-        state = dangers + walls + gems + is_gem_close + ladders + elevators + doors
+        state = position + gems + is_gem_close + dangers + walls + ladders + elevators + doors
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, game_over):
@@ -90,10 +94,10 @@ class Agent:
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
         self.epsilon = 1000 - self.number_of_games # 80 is hardcoded, we can experiment with it
-        # [left, right, up, down, jump, stay]
-        final_move = [0, 0, 0, 0, 0, 0]
+        # [left, right, up, down, jump]
+        final_move = [0, 0, 0, 0, 0]
         if random.randint(0, 2500) < self.epsilon:
-            move = random.randint(0, 5)
+            move = random.randint(0, 4)
             final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float)
@@ -175,4 +179,5 @@ def train():
         pass
 
 if __name__ == '__main__':
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
     train()

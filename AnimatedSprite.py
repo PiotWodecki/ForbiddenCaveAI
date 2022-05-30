@@ -14,7 +14,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         # Track the time we started, and the time between updates.
         # Then we can figure out when we have to switch the image.
         self.start = pygame.time.get_ticks()
-        self.fps = 30 #10
+        self.fps = 10 #10
         self.delay = 1000 / self.fps #1000
         self.last_update = 0
 

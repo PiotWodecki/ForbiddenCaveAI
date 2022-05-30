@@ -179,17 +179,21 @@ class GameAI:
 
         self._update_ui3(playerai)
 
+        reward = 0
+        game_over = False
+        reward = self.punish_for_wall_collisions(playerai, reward)
+
         # 3. check for gameover
-        reward, game_over = self.check_for_game_over(playerai)
+        reward, game_over = self.check_for_game_over(playerai, reward)
         if game_over is True:
             return reward, game_over, self.calculate_end_score()
 
         if self.check_for_gem_collision(playerai) == True:
-            reward = 10
+            reward = reward + 30
 
         return reward, game_over, self.calculate_end_score()
 
-    def check_for_game_over(self, playerai):
+    def check_for_game_over(self, playerai, reward):
         game_over = False
         # if self.lives <= 0 or self.check_for_single_dead(playerai) == 0:
         #     game_over = True
@@ -202,15 +206,25 @@ class GameAI:
             amount_of_steps_to_do_without_reward = self.score * 100
         if self.check_for_single_dead(playerai) == 0 or self.frame_iteration > amount_of_steps_to_do_without_reward:
             game_over = True
-            reward = -10
+            reward = reward - 10
             return reward, game_over
-        return 0, game_over
+        return reward, game_over
 
     def check_for_jump_dead(self, player_ai):
         # Check if player has fallen too long
         if player_ai.jumpDead == True:
             loopstate = 0 #life lost
             self.lives -= 1
+
+    def get_scaled_position_of_the_player(self, player_ai):
+        position = [0.0666, 0.8823]
+        if player_ai is not None:
+            x_position = player_ai.rect.left / 1040
+            y_position = player_ai.rect.top / 680
+            position[0] = x_position
+            position[1] = y_position
+
+        return position
 
     def check_for_gem_collision(self, player_ai):
         # Check player with gem collisions
@@ -500,6 +514,11 @@ class GameAI:
             del playergroup
 
         return wall
+
+    def punish_for_wall_collisions(self, player, reward):
+        if player.checkUpCollision() is True:
+            reward = reward - 0.2
+        return reward
 
     def check_for_gems(self, player):
         position = [0, 0, 0, 0]
@@ -860,11 +879,11 @@ class GameAI:
         del tile1
 
     def _move(self, playerAI, action):
-        # [left, right up, down, jump, stay]
+        # [left, right up, down, jump]
         # action = [1, 0, 0, 0, 0, 0]
         if playerAI is not None:
-            if not np.array_equal(action, [0, 0, 0, 0, 0, 1]): #???
-                if np.array_equal(action, [0, 0, 0, 0, 1, 0]):  # up
+            if not np.array_equal(action, [0, 0, 0, 0, 0]): #???
+                if np.array_equal(action, [0, 0, 0, 0, 1]):  # up
                     if (playerAI.jump == 0 and playerAI.ymove == 0) \
                             or playerAI.doElevator == True:
                         # self.jumpSound.play()
@@ -873,24 +892,24 @@ class GameAI:
                         playerAI.doClimb = False
                         playerAI.doElevator = False
                         playerAI.elevator = None
-                if np.array_equal(action, [1, 0, 0, 0, 0, 0]):  # left
+                if np.array_equal(action, [1, 0, 0, 0, 0]):  # left
                     playerAI.xmove = -1
-                if np.array_equal(action, [0, 1, 0, 0, 0, 0]):  # right
+                if np.array_equal(action, [0, 1, 0, 0, 0]):  # right
                     playerAI.xmove = 1
-                if np.array_equal(action, [0, 0, 1, 0, 0, 0]):  # up
+                if np.array_equal(action, [0, 0, 1, 0, 0]):  # up
                     if playerAI.canClimb:
                         playerAI.doClimb = True
                         playerAI.climbMove = -1
-                if np.array_equal(action, [0, 0, 0, 1, 0, 0]):  # down
+                if np.array_equal(action, [0, 0, 0, 1, 0]):  # down
                     if playerAI.canClimb:
                         playerAI.doClimb = True
                         playerAI.climbMove = 1
             else:
-                if np.array_equal(action, [0, 1, 0, 0, 0, 0]) and playerAI.xmove > 0: #right
+                if np.array_equal(action, [0, 1, 0, 0, 0]) and playerAI.xmove > 0: #right
                     playerAI.xmove = 0
-                if np.array_equal(action, [1, 0, 0, 0, 0, 0]) and playerAI.xmove < 0: #left
+                if np.array_equal(action, [1, 0, 0, 0, 0]) and playerAI.xmove < 0: #left
                     playerAI.xmove = 0
-                if np.array_equal(action, [0, 0, 1, 0, 0, 0]) or np.array_equal(action, [0, 0, 0, 1, 0, 0]) and playerAI.doClimb: #up or down
+                if np.array_equal(action, [0, 0, 1, 0, 0]) or np.array_equal(action, [0, 0, 0, 1, 0, 0]) and playerAI.doClimb: #up or down
                     playerAI.climbMove = 0
                     playerAI.doClimb = False
 
